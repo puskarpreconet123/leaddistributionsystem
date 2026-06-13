@@ -24,7 +24,8 @@ use App\Http\Controllers\LeadFieldController;
 use App\Http\Controllers\AgentController;
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('/dashboard', [LeadController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard', [LeadController::class, 'dashboard'])->name('dashboard');
+    Route::get('/leads', [LeadController::class, 'index'])->name('leads.index');
     Route::post('/leads', [LeadController::class, 'store'])->name('leads.store');
     Route::delete('/leads/bulk-delete', [LeadController::class, 'bulkDestroy'])->name('leads.bulk-delete')->middleware('can:admin');
     Route::put('/leads/{lead}', [LeadController::class, 'update'])->name('leads.update');

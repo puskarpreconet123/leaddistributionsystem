@@ -11,6 +11,56 @@ use Illuminate\Support\Str;
 class LeadController extends Controller
 {
     /**
+     * Display the dashboard overview.
+     */
+    public function dashboard(Request $request)
+    {
+        $user = auth()->user();
+        $allFields = LeadField::all();
+        $agents = User::where('role', 'user')->get();
+        $visibleFields = LeadField::where('is_visible', true)->get();
+
+        // Calculate statistics
+        if ($user->isAdmin()) {
+            $stats = [
+                'total' => Lead::count(),
+                'new' => Lead::where('status', 'new')->count(),
+                'contacted' => Lead::where('status', 'contacted')->count(),
+                'converted' => Lead::where('status', 'converted')->count(),
+                'lost' => Lead::where('status', 'lost')->count(),
+                'unassigned' => Lead::whereNull('assigned_to')->count(),
+            ];
+            $leads = collect(); // empty for admins on dashboard
+        } else {
+            $stats = [
+                'total' => Lead::where('assigned_to', $user->id)->count(),
+                'new' => Lead::where('assigned_to', $user->id)->where('status', 'new')->count(),
+                'contacted' => Lead::where('assigned_to', $user->id)->where('status', 'contacted')->count(),
+                'converted' => Lead::where('assigned_to', $user->id)->where('status', 'converted')->count(),
+                'lost' => Lead::where('assigned_to', $user->id)->where('status', 'lost')->count(),
+            ];
+
+            // Fetch leads for agent
+            $query = Lead::with('agent')->where('assigned_to', $user->id);
+
+            // Search filter
+            if ($request->filled('search')) {
+                $search = $request->input('search');
+                $query->where('data', 'like', '%' . $search . '%');
+            }
+
+            // Status filter
+            if ($request->filled('status')) {
+                $query->where('status', $request->input('status'));
+            }
+
+            $leads = $query->orderBy('created_at', 'desc')->paginate(10)->appends(request()->query());
+        }
+
+        return view('dashboard', compact('allFields', 'agents', 'stats', 'leads', 'visibleFields'));
+    }
+
+    /**
      * Display a listing of the resource.
      */
     public function index(Request $request)
@@ -28,8 +78,6 @@ class LeadController extends Controller
         // Search in JSON data column if search term is provided
         if ($request->filled('search')) {
             $search = $request->input('search');
-            // SQLite search inside JSON: we can perform a simple where like on the raw json text representation or scan keys.
-            // Since it's SQLite, we can search by casting to string or using raw like on the 'data' field.
             $query->where('data', 'like', '%' . $search . '%');
         }
 
@@ -56,27 +104,7 @@ class LeadController extends Controller
 
         $leads = $query->orderBy('created_at', 'desc')->paginate(10)->appends(request()->query());
 
-        // Calculate statistics
-        if ($user->isAdmin()) {
-            $stats = [
-                'total' => Lead::count(),
-                'new' => Lead::where('status', 'new')->count(),
-                'contacted' => Lead::where('status', 'contacted')->count(),
-                'converted' => Lead::where('status', 'converted')->count(),
-                'lost' => Lead::where('status', 'lost')->count(),
-                'unassigned' => Lead::whereNull('assigned_to')->count(),
-            ];
-        } else {
-            $stats = [
-                'total' => Lead::where('assigned_to', $user->id)->count(),
-                'new' => Lead::where('assigned_to', $user->id)->where('status', 'new')->count(),
-                'contacted' => Lead::where('assigned_to', $user->id)->where('status', 'contacted')->count(),
-                'converted' => Lead::where('assigned_to', $user->id)->where('status', 'converted')->count(),
-                'lost' => Lead::where('assigned_to', $user->id)->where('status', 'lost')->count(),
-            ];
-        }
-
-        return view('dashboard', compact('leads', 'visibleFields', 'allFields', 'agents', 'stats'));
+        return view('leads.index', compact('leads', 'visibleFields', 'allFields', 'agents'));
     }
 
     /**
