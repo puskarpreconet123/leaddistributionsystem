@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: lead-distribution
+    runtime: docker
+    plan: free
+    # If git repo is initialized at the parent directory (Lead_Distribution), uncomment the next two lines:
+    # dockerfilePath: lead-distribution/Dockerfile
+    # dockerContext: lead-distribution
+    # If git repo is initialized directly inside the lead-distribution directory:
+    dockerfilePath: Dockerfile
+    dockerContext: .
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: APP_KEY
+        sync: false # Will prompt you to enter this in Render (generate using php artisan key:generate)
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DATABASE_URL
+        fromDatabase:
+          name: lead-distribution-db
+          property: connectionString
+      - key: LOG_CHANNEL
+        value: stderr
+
+databases:
+  - name: lead-distribution-db
+    plan: free
