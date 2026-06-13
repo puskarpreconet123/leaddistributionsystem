@@ -1,5 +1,5 @@
 # Stage 1: Build frontend assets
-FROM node:18-alpine AS assets-builder
+FROM node:22-alpine AS assets-builder
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci
