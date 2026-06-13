@@ -18,7 +18,6 @@ class LeadController extends Controller
         $user = auth()->user();
         $allFields = LeadField::all();
         $agents = User::where('role', 'user')->get();
-        $visibleFields = LeadField::where('is_visible', true)->get();
 
         // Calculate statistics
         if ($user->isAdmin()) {
@@ -30,7 +29,6 @@ class LeadController extends Controller
                 'lost' => Lead::where('status', 'lost')->count(),
                 'unassigned' => Lead::whereNull('assigned_to')->count(),
             ];
-            $leads = collect(); // empty for admins on dashboard
         } else {
             $stats = [
                 'total' => Lead::where('assigned_to', $user->id)->count(),
@@ -39,25 +37,9 @@ class LeadController extends Controller
                 'converted' => Lead::where('assigned_to', $user->id)->where('status', 'converted')->count(),
                 'lost' => Lead::where('assigned_to', $user->id)->where('status', 'lost')->count(),
             ];
-
-            // Fetch leads for agent
-            $query = Lead::with('agent')->where('assigned_to', $user->id);
-
-            // Search filter
-            if ($request->filled('search')) {
-                $search = $request->input('search');
-                $query->where('data', 'like', '%' . $search . '%');
-            }
-
-            // Status filter
-            if ($request->filled('status')) {
-                $query->where('status', $request->input('status'));
-            }
-
-            $leads = $query->orderBy('created_at', 'desc')->paginate(10)->appends(request()->query());
         }
 
-        return view('dashboard', compact('allFields', 'agents', 'stats', 'leads', 'visibleFields'));
+        return view('dashboard', compact('allFields', 'agents', 'stats'));
     }
 
     /**
