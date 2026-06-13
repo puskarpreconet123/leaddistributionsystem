@@ -48,3 +48,5 @@ Route::middleware('auth')->group(function () {
 });
 
 Route::get('/seed', [App\Http\Controllers\SeedController::class, 'run'])->name('seed');
+
+require __DIR__.'/auth.php';
